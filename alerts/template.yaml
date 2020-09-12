@@ -1,0 +1,30 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Greengrass Device Lambda
+
+Globals:
+  Function:
+    Timeout: 100
+    MemorySize: 129
+    Runtime: nodejs8.10 
+      
+
+Resources:
+  parkingAlerts:
+    Type: AWS::Serverless::Function
+    Properties:
+      #CodeUri: ../gg-kepware/
+      Handler: alerts.handler
+      AutoPublishAlias: prod
+      Policies: 
+        - AmazonDynamoDBFullAccess
+        - AWSLambdaExecute
+        - CloudWatchLogsFullAccess
+        - AWSIoTEventsFullAccess
+        - AWSIoTFullAccess
+        - AmazonRDSReadOnlyAccess
+      Environment:
+        Variables:
+          'tablename': 'AWS_PARKING_ALERTS_WARNINGS'
+ 

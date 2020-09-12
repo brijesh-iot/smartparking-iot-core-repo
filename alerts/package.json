@@ -1,0 +1,15 @@
+{
+  "name": "device_status",
+  "version": "1.0.0",
+  "description": "",
+  "main": "device_status.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Brijesh",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.568.0",
+    "mysql": "^2.17.1"
+  }
+}

@@ -1,0 +1,50 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'IoT Core Device Status Lambda
+
+  '
+Globals:
+  Function:
+    Timeout: 300
+Resources:
+  deviceStatusMySQL:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: device_status.handler
+      MemorySize: 1024
+      Runtime: nodejs8.10
+      AutoPublishAlias: prod
+      Policies:
+      - AWSLambdaExecute
+      - AmazonRDSReadOnlyAccess
+      - CloudWatchLogsFullAccess
+      Environment:
+        Variables:
+          tablename: AWS_PARKING_DEVICE_STATUS
+      CodeUri: s3://sp-sam-bucket/2474d929d321cdf2c5e5c692edfc5d54
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: /
+      Policies:
+      - PolicyName: root
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:*
+            Resource: arn:aws:logs:*:*:*
+          - Effect: Allow
+            Action:
+            - rds:*
+            Resource: arn:aws:rds:*:*:*

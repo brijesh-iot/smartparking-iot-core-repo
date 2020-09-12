@@ -1,0 +1,265 @@
+{
+    "detectorModelName": "BatteryStatus",
+    "detectorModelDefinition": {
+      "states": [
+        {
+          "stateName": "Normal",
+          "onEnter": {
+            "events": [
+              {
+                "eventName": "Battery Power Restored",
+                "condition": "$variable.BatteryLife > 90",
+                "actions": [
+                  {
+                    "sns": {
+                      "targetArn": "arn:aws:sns:us-east-1:441518958191:SmartParkingTextLowBatteryLifeExit"
+                    }
+                  },
+                  {
+                      "lambda": {
+                          "functionArn": "arn:aws:lambda:us-east-1:441518958191:function:device-alerts-stack-parkingAlerts-L3C3HU9T256N"
+                      }
+                  }
+                ]
+              }
+            ]
+          },
+          "onInput": {
+            "transitionEvents": [
+              {
+                "eventName": "LowBatteryWarning",
+                "condition": "$input.DeviceStatusInput.BatteryLife > 30 && $input.DeviceStatusInput.BatteryLife < 40",
+                "actions": [
+                  {
+                    "setVariable": {
+                      "variableName": "BatteryLife",
+                      "value": "$input.DeviceStatusInput.BatteryLife"
+                    }
+                  }
+                ],
+                "nextState": "Warning"
+              }
+            ]
+          }
+        }, 
+        {
+          "stateName": "Warning",
+          "onEnter": {
+            "events": [
+              {
+                "eventName": "Low BatteryLife Warning",
+                "condition": "$variable.BatteryLife > 30 && $variable.BatteryLife < 40",
+                "actions": [
+                  {
+                    "sns": {
+                      "targetArn": "arn:aws:sns:us-east-1:441518958191:SmartParkingTextLowBatteryLifeEnter"
+                    }
+                  },
+                  {
+                      "lambda": {
+                          "functionArn": "arn:aws:lambda:us-east-1:441518958191:function:device-alerts-stack-parkingAlerts-L3C3HU9T256N"
+                      }
+                  }
+                ]
+              }
+            ]
+          },
+          "onInput": {
+            "events": [],
+            "transitionEvents": [
+              {
+                "eventName": "Battery Power Restored",
+                "condition": "$input.DeviceStatusInput.BatteryLife > 90",
+                "actions": [
+                  {
+                    "setVariable": {
+                      "variableName": "BatteryLife",
+                      "value": "$input.DeviceStatusInput.BatteryLife"
+                    }
+                  }
+                ],
+                "nextState": "Normal"
+              },
+              {
+                "eventName": "LowBatteryWarning",
+                "condition": "$input.DeviceStatusInput.BatteryLife > 20 && $input.DeviceStatusInput.BatteryLife < 30",
+                "actions": [
+                  {
+                    "setVariable": {
+                      "variableName": "BatteryLife",
+                      "value": "$input.DeviceStatusInput.BatteryLife"
+                    }
+                  }
+                ],
+                "nextState": "Dangerous"
+              }
+            ]
+          },
+          "onExit": {
+            "events": []
+          }
+        },
+        {
+          "stateName": "Dangerous",
+          "onEnter": {
+            "events": [
+              {
+                "eventName": "Low BatteryLife Dangerous",
+                "condition": "$variable.BatteryLife > 20 && $variable.BatteryLife < 30",
+                "actions": [
+                  {
+                    "sns": {
+                      "targetArn": "arn:aws:sns:us-east-1:441518958191:SmartParkingTextLowBatteryLifeEnter"
+                    }
+                  },
+                  {
+                      "lambda": {
+                          "functionArn": "arn:aws:lambda:us-east-1:441518958191:function:device-alerts-stack-parkingAlerts-L3C3HU9T256N"
+                      }
+                  }
+                ]
+              }
+            ]
+          },
+          "onInput": {
+            "events": [],
+            "transitionEvents": [
+              {
+                "eventName": "Battery Power Restored",
+                "condition": "$input.DeviceStatusInput.BatteryLife > 90",
+                "actions": [
+                  {
+                    "setVariable": {
+                      "variableName": "BatteryLife",
+                      "value": "$input.DeviceStatusInput.BatteryLife"
+                    }
+                  }
+                ],
+                "nextState": "Normal"
+              },
+              {
+                "eventName": "Battery Power Critical",
+                "condition": "$input.DeviceStatusInput.BatteryLife > 0 && $input.DeviceStatusInput.BatteryLife < 20",
+                "actions": [
+                  {
+                    "setVariable": {
+                      "variableName": "BatteryLife",
+                      "value": "$input.DeviceStatusInput.BatteryLife"
+                    }
+                  }
+                ],
+                "nextState": "Critical"
+              }
+            ]
+          },
+          "onExit": {
+            "events": []
+          }
+        },
+        {
+          "stateName": "Critical",
+          "onEnter": {
+            "events": [
+              {
+                "eventName": "Low BatteryLife Critical",
+                "condition": "$variable.BatteryLife > 0 && $variable.BatteryLife < 20",
+                "actions": [
+                  {
+                    "sns": {
+                      "targetArn": "arn:aws:sns:us-east-1:441518958191:SmartParkingTextLowBatteryLifeEnter"
+                    }
+                  },
+                  {
+                      "lambda": {
+                          "functionArn": "arn:aws:lambda:us-east-1:441518958191:function:device-alerts-stack-parkingAlerts-L3C3HU9T256N"
+                      }
+                  }
+                ]
+              }
+            ]
+          },
+          "onInput": {
+            "events": [],
+            "transitionEvents": [
+              {
+                "eventName": "Battery Power Restored",
+                "condition": "$input.DeviceStatusInput.BatteryLife > 90",
+                "actions": [
+                  {
+                    "setVariable": {
+                      "variableName": "BatteryLife",
+                      "value": "$input.DeviceStatusInput.BatteryLife"
+                    }
+                  }
+                ],
+                "nextState": "Normal"
+              },
+              {
+                "eventName": "Out of Service",
+                "condition": "$input.DeviceStatusInput.BatteryLife == 0",
+                "actions": [
+                  {
+                    "setVariable": {
+                      "variableName": "BatteryLife",
+                      "value": "$input.DeviceStatusInput.BatteryLife"
+                    }
+                  }
+                ],
+                "nextState": "Dead"
+              }
+            ]
+          },
+          "onExit": {
+            "events": []
+          }
+        },
+        {
+          "stateName": "Dead",
+          "onEnter": {
+            "events": [
+              {
+                "eventName": "Out of Service",
+                "condition": "$variable.BatteryLife == 0",
+                "actions": [
+                  {
+                    "sns": {
+                      "targetArn": "arn:aws:sns:us-east-1:441518958191:SmartParkingTextLowBatteryLifeEnter"
+                    }
+                  },
+                  {
+                      "lambda": {
+                          "functionArn": "arn:aws:lambda:us-east-1:441518958191:function:device-alerts-stack-parkingAlerts-L3C3HU9T256N"
+                      }
+                  }
+                ]
+              }
+            ]
+          },
+          "onInput": {
+            "events": [],
+            "transitionEvents": [
+              {
+                "eventName": "Battery Power Restored",
+                "condition": "$input.DeviceStatusInput.BatteryLife > 90",
+                "actions": [
+                  {
+                    "setVariable": {
+                      "variableName": "BatteryLife",
+                      "value": "$input.DeviceStatusInput.BatteryLife"
+                    }
+                  }
+                ],
+                "nextState": "Normal"
+              }
+            ]
+          },
+          "onExit": {
+            "events": []
+          }
+        }
+      ],
+      "initialStateName": "Normal"
+    },
+    "key" : "serial_number",
+    "roleArn": "arn:aws:iam::441518958191:role/IoTCoreEventsRole"
+  }

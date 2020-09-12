@@ -1,0 +1,14 @@
+>> Greengrass
+
+aws cloudformation package --template-file template.yaml --output-template-file sam-template.yaml --s3-bucket sp-sam-bucket
+aws cloudformation deploy --template-file sam-template.yaml --stack-name device-alerts-stack --capabilities CAPABILITY_IAM
+aws cloudformation delete-stack --stack-name device-alerts-stack
+
+
+aws iotevents create-input  --cli-input-json file://DeviceStatusInput.json 
+
+aws iotevents create-detector-model  --cli-input-json file://BatteryStatusDetector.json
+
+senddata for testing
+
+aws iotevents-data batch-put-message --cli-input-json file://BatteryStatusTesting.json

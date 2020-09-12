@@ -1,0 +1,8 @@
+>> Device Status
+
+aws cloudformation package --template-file template.yaml --output-template-file sam-template.yaml --s3-bucket sp-sam-bucket
+
+aws cloudformation deploy --template-file sam-template.yaml --stack-name deviceStatusMySQL-stack --capabilities CAPABILITY_IAM
+
+aws cloudformation delete-stack --stack-name deviceStatusMySQL-stack
+

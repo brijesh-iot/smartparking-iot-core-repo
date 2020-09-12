@@ -1,0 +1,11 @@
+{
+    "inputName": "BatteryStatusInput",
+    "inputDescription": "BatteryLife readings from a Parking Edge.",
+    "inputDefinition": {
+      "attributes": [
+        { "jsonPath": "BatteryLife" },
+        { "jsonPath": "serial_number" },
+        { "jsonPath": "timestamp" }
+      ]
+    }
+  }

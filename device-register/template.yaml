@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  IoT Core Device Registration Lambda
+
+Globals:
+  Function:
+    Timeout: 300
+    
+
+Resources:
+  deviceRegisterMySQL:
+    Type: AWS::Serverless::Function
+    Properties:
+      #CodeUri: ../gg-kepware/
+      #Role: !GetAtt LambdaExecutionRole.Arn
+      Handler: device_register.handler
+      MemorySize: 1024
+      Runtime: nodejs8.10 
+      Timeout: 300
+      AutoPublishAlias: prod
+      Policies: 
+        - AWSLambdaExecute 
+        - AmazonRDSReadOnlyAccess
+        - CloudWatchLogsFullAccess
+      Environment:
+        Variables:
+          'deviceTable': 'AWS_PARKING_DEVICE_MASTER'
+          'statusTable': 'AWS_PARKING_DEVICE_STATUS'
+  
+
+
+
+
+
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: root
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:*
+            Resource: arn:aws:logs:*:*:*
+          - Effect: Allow
+            Action:
+            - rds:* 
+            Resource: arn:aws:rds:*:*:*
+            

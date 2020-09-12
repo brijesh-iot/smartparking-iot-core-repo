@@ -1,0 +1,6 @@
+{
+    "dbhost" : "smartparking.cs6hgb41mwmo.us-east-1.rds.amazonaws.com",
+    "dbname" : "smartparking",
+    "dbuser" : "admin",
+    "dbpassword" : "adminpass"
+}

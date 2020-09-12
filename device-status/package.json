@@ -1,0 +1,15 @@
+{
+  "name": "device_register_nodejs",
+  "version": "1.0.0",
+  "description": "",
+  "main": "device_register.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Brijesh",
+  "license": "ISC",
+  "dependencies": {
+    "moment": "^2.24.0",
+    "mysql": "^2.17.1"
+  }
+}

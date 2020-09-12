@@ -1,0 +1,161 @@
+
+create table SMART_PARKING_ADDRESS_MASTER
+(
+   address_id INT NOT NULL AUTO_INCREMENT,
+   location VARCHAR(50) NOT NULL,
+   address VARCHAR(150) NOT NULL,
+   city VARCHAR(50) NOT NULL,
+   state VARCHAR(30) NOT NULL,
+   zipcode INT NOT NULL,
+   area_code VARCHAR(100) NOT NULL,
+   timestamp TIMESTAMP NOT NULL,
+
+   PRIMARY KEY ( address_id )
+);
+
+create table SMART_PARKING_DEVICE_MASTER
+(
+   device_id INT NOT NULL AUTO_INCREMENT,
+   serial_number VARCHAR(50) NOT NULL UNIQUE,
+   asset VARCHAR(25) NOT NULL,
+   asset_type VARCHAR(25) NOT NULL,
+   meter_no INT NOT NULL,
+   iot_birth_rule_cloud VARCHAR(150) NOT NULL,
+   iot_birth_rule_edge VARCHAR(150) NOT NULL,
+   iot_data_rule_cloud VARCHAR(150) NOT NULL,
+   iot_data_rule_edge VARCHAR(150) NOT NULL,
+   guid VARCHAR(70),
+   timestamp TIMESTAMP NOT NULL,
+
+   PRIMARY KEY ( device_id )
+);
+
+create table SMART_PARKING_DEVICE_ADDRESS_MPG
+(
+    device_id INT,
+    address_id INT,
+    FOREIGN KEY (device_id) REFERENCES SMART_PARKING_DEVICE_MASTER(device_id),
+    FOREIGN KEY (address_id) REFERENCES SMART_PARKING_ADDRESS_MASTER(address_id)
+);
+
+
+create table SMART_PARKING_DEVICE_STATUS
+(
+   status_id INT NOT NULL AUTO_INCREMENT,
+   serial_number VARCHAR(50) NOT NULL UNIQUE,
+   status VARCHAR(50) NULL,
+   BatteryLife INT NOT NULL,
+   IsOccupied INT NOT NULL,
+   user_code VARCHAR(10) NULL,
+   parking_start_time TIMESTAMP DEFAULT NULL,
+   parking_end_time TIMESTAMP DEFAULT NULL,
+   comment VARCHAR(150),
+   scan int DEFAULT 0,
+   timestamp TIMESTAMP NOT NULL,
+   
+   PRIMARY KEY ( status_id )
+);
+
+create table SMART_PARKING_MASTER
+(
+    parking_id INT NOT NULL AUTO_INCREMENT,
+    parking_name VARCHAR(100) NOT NULL,
+    area_code VARCHAR(100) NOT NULL,
+    status INT NOT NULL default 1,
+    updated_ts TIMESTAMP NOT NULL,
+    created_by VARCHAR(100) NOT NULL,
+    created_ts TIMESTAMP NOT NULL,
+    PRIMARY KEY ( parking_id )
+);
+
+create table SMART_PARKING_SITE_ADDRESS_MPG
+(
+    parking_id INT,
+    address_id INT,
+    FOREIGN KEY (parking_id) REFERENCES SMART_PARKING_MASTER(parking_id),
+    FOREIGN KEY (address_id) REFERENCES SMART_PARKING_ADDRESS_MASTER(address_id)
+);
+
+
+// Inserts
+
+insert into SMART_PARKING_MASTER ( parking_name, area_code, status, created_by ) values (
+'Arbor Lakes Parking','f17019d1-fc59-44db-ad55-3a6d6e0ad485',1,'Brijesh'
+);
+
+insert into SMART_PARKING_ADDRESS_MASTER values (
+default, '["28.787585","-81.336799"]', '100 Arbor Lakes Circle', 'Sanford', 'FL', '32771', 'f17019d1-fc59-44db-ad55-3a6d6e0ad400', current_timestamp()
+);
+
+,
+
+insert into SMART_PARKING_ADDRESS_MASTER values (
+default, '["28.792325","-81.337889"]', '100 Arbor Lakes Circle', 'Sanford', 'FL', '32771', 'f17019d1-fc59-44db-ad55-3a6d6e0ad500', current_timestamp()
+);
+
+insert into SMART_PARKING_ADDRESS_MASTER values (
+default, '["28.802641","-81.328069"]', 'Wallmart Supercenter', 'Sanford', 'FL', '32771', 'f17019d1-fc59-44db-ad55-3a6d6e0ad498', current_timestamp()
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+create table SMART_PARKING_DEVICE_MASTER_old
+(
+   device_id INT NOT NULL AUTO_INCREMENT,
+   serial_number VARCHAR(50) NOT NULL UNIQUE,
+   asset VARCHAR(25) NOT NULL,
+   asset_type VARCHAR(25) NOT NULL,
+   location VARCHAR(50) NOT NULL,
+   meter INT NOT NULL,
+   address VARCHAR(150) NOT NULL,
+   city VARCHAR(50) NOT NULL,
+   state VARCHAR(30) NOT NULL,
+   zipcode INT NOT NULL,
+   iot_birth_rule_cloud VARCHAR(150) NOT NULL,
+   iot_birth_rule_edge VARCHAR(150) NOT NULL,
+   iot_data_rule_cloud VARCHAR(150) NOT NULL,
+   iot_data_rule_edge VARCHAR(150) NOT NULL,
+   guid VARCHAR(70),
+   --timestamp TIMESTAMP NOT NULL,
+   timestamp DECIMAL(10,6),
+   PRIMARY KEY ( device_id )
+);

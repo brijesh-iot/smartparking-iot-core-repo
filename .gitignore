@@ -1,0 +1,9 @@
+.git
+.idea
+__init__.py
+cert.pem
+private.key
+root.ca.pem
+*.bak
+.git.opencloud
+.git.old

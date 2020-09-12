@@ -1,0 +1,495 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: IoT Edge application
+
+Parameters:
+  CoreName:
+    Description: Greengrass Core on which our resources will be deployed
+    Default: "coreName"
+    Type: String
+
+  IoTResourceS3Bucket:
+    Description: IoT Resource folder where Things generated certificates will be stored. Default value will be replaced from deploy.sh.
+    Default: "project-iotresources3bucket-x"
+    Type: String
+
+  IoTRuleDeviceRegister:
+    Description: Rule for device registration
+    Type: String
+    Default: sp_device_registration_v1
+
+  IoTRuleDeviceStatus:
+    Description: Rule for device status
+    Type: String
+    Default: sp_device_status_v1
+
+  IoTRuleDeviceDeath:
+    Description: Rule for device death
+    Type: String
+    Default: sp_device_death_v1
+
+  IoTEventSubEmail:
+    Description: IoT Events notification email address
+    Type: String
+    Default: bprajapati@deloitte.com
+
+Globals:
+  Function:
+    Timeout: 300
+
+Resources:
+
+  DeviceRegisterMySqlLF:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: device-register
+      Handler: device_register.handler
+      MemorySize: 1024
+      Runtime: nodejs12.x
+      Timeout: 300
+      AutoPublishAlias: prod
+      Tracing: Active
+      Policies:
+        - AWSLambdaExecute
+        - AmazonRDSReadOnlyAccess
+        - CloudWatchLogsFullAccess
+        - AmazonEC2FullAccess
+        - AWSXrayFullAccess
+      Environment:
+        Variables:
+          deviceTable: 'SMART_PARKING_DEVICE_MASTER'
+          statusTable: 'SMART_PARKING_DEVICE_STATUS'
+          locationTable: 'SMART_PARKING_ADDRESS_MASTER'
+          deviceLocationMpgTable: 'SMART_PARKING_DEVICE_ADDRESS_MPG'
+          dbPass: !Sub '{{resolve:secretsmanager:SmartParkingRDSAdmin:SecretString:password}}'
+          dbUser: !Sub '{{resolve:secretsmanager:SmartParkingRDSAdmin:SecretString:username}}'
+          dbHost: !Sub '{{resolve:secretsmanager:SmartParkingRDSAdmin:SecretString:host}}'
+          dbName: !Sub '{{resolve:secretsmanager:SmartParkingRDSAdmin:SecretString:dbname}}'
+
+      Tags:
+        Project: !Ref CoreName
+        FAI: DeviceRegisterMySqlLF
+      VpcConfig:
+        SecurityGroupIds:
+          - Fn::ImportValue:
+              !Sub "${CoreName}-EdgeGatewaySecurityGroup"
+        SubnetIds:
+          - Fn::ImportValue:
+              !Sub "${CoreName}-PublicSubnet1"
+          - Fn::ImportValue:
+              !Sub "${CoreName}-PublicSubnet2"
+
+  DeviceRegisterMySqlLIP:
+    Type: AWS::Lambda::Permission
+    Properties:
+      SourceArn: !Join [ "", [ "arn:aws:iot:", !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":rule/", !Ref "DeviceRegisterTopicRule" ] ]
+      Action: lambda:InvokeFunction
+      Principal: iot.amazonaws.com
+      FunctionName: !GetAtt DeviceRegisterMySqlLF.Arn
+      SourceAccount: !Ref AWS::AccountId
+
+  DeviceStatusMySqlLF:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: device-status
+      Handler: device_status.handler
+      MemorySize: 1024
+      Runtime: nodejs12.x
+      AutoPublishAlias: prod
+      Tracing: Active
+      Policies:
+        - AWSLambdaExecute
+        - AmazonRDSReadOnlyAccess
+        - CloudWatchLogsFullAccess
+        - AmazonEC2FullAccess
+      Environment:
+        Variables:
+          tablename: 'SMART_PARKING_DEVICE_STATUS'
+          dbPass: !Sub '{{resolve:secretsmanager:SmartParkingRDSAdmin:SecretString:password}}'
+          dbUser: !Sub '{{resolve:secretsmanager:SmartParkingRDSAdmin:SecretString:username}}'
+          dbHost: !Sub '{{resolve:secretsmanager:SmartParkingRDSAdmin:SecretString:host}}'
+          dbName: !Sub '{{resolve:secretsmanager:SmartParkingRDSAdmin:SecretString:dbname}}'
+
+      Tags:
+        Project: !Ref CoreName
+        FAI: DeviceStatusMySQL
+      VpcConfig:
+        SecurityGroupIds:
+          - Fn::ImportValue:
+              !Sub "${CoreName}-EdgeGatewaySecurityGroup"
+        SubnetIds:
+          - Fn::ImportValue:
+              !Sub "${CoreName}-PublicSubnet1"
+          - Fn::ImportValue:
+              !Sub "${CoreName}-PublicSubnet2"
+
+  DeviceStatusMySqlLIP:
+    Type: AWS::Lambda::Permission
+    Properties:
+      SourceArn: !Join [ "", [ "arn:aws:iot:", !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":rule/", !Ref "DeviceStatusTopicRule" ] ]
+      Action: lambda:InvokeFunction
+      Principal: iot.amazonaws.com
+      FunctionName: !GetAtt DeviceStatusMySqlLF.Arn
+      SourceAccount: !Ref AWS::AccountId
+
+  ParkingAlarmsWarnings:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: "PARKING_ALERTS_WARNINGS"
+      AttributeDefinitions:
+        - AttributeName: serial_number
+          AttributeType: S
+        - AttributeName: event_time
+          AttributeType: N
+        - AttributeName: alert_name
+          AttributeType: S
+        - AttributeName: event_state
+          AttributeType: S
+        - AttributeName: zipcode
+          AttributeType: N
+      KeySchema:
+        - AttributeName: alert_name
+          KeyType: HASH
+        - AttributeName: event_state
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      GlobalSecondaryIndexes:
+        - IndexName: ALERT-ZIP-index
+          KeySchema:
+            - AttributeName: alert_name
+              KeyType: HASH
+            - AttributeName: zipcode
+              KeyType: RANGE
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+          Projection:
+            ProjectionType: ALL
+        - IndexName: STATE-ZIP-index
+          KeySchema:
+            - AttributeName: event_state
+              KeyType: HASH
+            - AttributeName: zipcode
+              KeyType: RANGE
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+          Projection:
+            ProjectionType: ALL
+        - IndexName: TIME-index
+          KeySchema:
+            - AttributeName: event_time
+              KeyType: HASH
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+          Projection:
+            ProjectionType: ALL
+        - IndexName: ZIP-index
+          KeySchema:
+            - AttributeName: zipcode
+              KeyType: HASH
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+          Projection:
+            ProjectionType: ALL
+        - IndexName: SERIAL-index
+          KeySchema:
+            - AttributeName: serial_number
+              KeyType: HASH
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+          Projection:
+            ProjectionType: ALL
+
+  ParkingAlertsLF:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: alerts
+      Handler: alerts.handler
+      AutoPublishAlias: prod
+      MemorySize: 512
+      Runtime: nodejs12.x
+      #Tracing: Active
+      Policies:
+        - AmazonDynamoDBFullAccess
+        - AWSLambdaExecute
+        - CloudWatchLogsFullAccess
+        - AWSIoTEventsFullAccess
+        - AmazonRDSReadOnlyAccess
+        - AmazonEC2FullAccess
+      Environment:
+        Variables:
+          alertsTablename: 'PARKING_ALERTS_WARNINGS'
+          dbPass: !Sub '{{resolve:secretsmanager:SmartParkingRDSAdmin:SecretString:password}}'
+          dbUser: !Sub '{{resolve:secretsmanager:SmartParkingRDSAdmin:SecretString:username}}'
+          dbHost: !Sub '{{resolve:secretsmanager:SmartParkingRDSAdmin:SecretString:host}}'
+          dbName: !Sub '{{resolve:secretsmanager:SmartParkingRDSAdmin:SecretString:dbname}}'
+          deviceMasterTable: 'SMART_PARKING_DEVICE_MASTER'
+          deviceAddressMpgTable: 'SMART_PARKING_DEVICE_ADDRESS_MPG'
+          addressMasterTable: 'SMART_PARKING_ADDRESS_MASTER'
+
+
+      VpcConfig:
+        SecurityGroupIds:
+          - Fn::ImportValue:
+              !Sub "${CoreName}-EdgeGatewaySecurityGroup"
+        SubnetIds:
+          - Fn::ImportValue:
+              !Sub "${CoreName}-PublicSubnet1"
+          - Fn::ImportValue:
+              !Sub "${CoreName}-PublicSubnet2"
+
+  BatteryStatusChangeInput:
+    Type: "AWS::IoTEvents::Input"
+    Properties:
+      InputName: "BatteryStatusChangeInput"
+      InputDescription: "BatteryLife readings from a Parking Edge."
+      InputDefinition:
+        Attributes:
+          - JsonPath: "BatteryLife"
+          - JsonPath: "serial_number"
+          - JsonPath: "timestamp"
+
+  TextLowBatteryLifeExitSNS:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "${CoreName}-SmartParkingTextLowBatteryLifeExit"
+
+  IoTSnsTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics:
+        - !Ref TextLowBatteryLifeExitSNS
+      PolicyDocument:
+        Statement:
+          - Sid: LocalAccountPermissions
+            Effect: Allow
+            Principal:
+              AWS: "*"
+            Action:
+              - SNS:GetTopicAttributes
+              - SNS:SetTopicAttributes
+              - SNS:AddPermission
+              - SNS:RemovePermission
+              - SNS:DeleteTopic
+              - SNS:Subscribe
+              - SNS:ListSubscriptionsByTopic
+              - SNS:Publish
+              - SNS:Receive
+            Condition:
+              StringEquals:
+                AWS:SourceOwner:
+                  - !Ref AWS::AccountId
+            Resource: !Ref TextLowBatteryLifeExitSNS
+
+          - Sid: IoTEventsPermission
+            Effect: Allow
+            Principal:
+              Service: iotevents.amazonaws.com
+            Action:
+              - SNS:Publish
+            Resource: !Ref TextLowBatteryLifeExitSNS
+
+          - Sid: IoTPermission
+            Effect: Allow
+            Principal:
+              Service: iot.amazonaws.com
+            Action:
+              - SNS:Publish
+            Resource: !Ref TextLowBatteryLifeExitSNS
+
+  IoTEventsSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: !Ref IoTEventSubEmail
+      Protocol: email
+      TopicArn: !Ref TextLowBatteryLifeExitSNS
+
+  BatteryStatusChangeInputDM:
+    Type: "AWS::IoTEvents::DetectorModel"
+    Properties:
+      DetectorModelName: "BatteryStatusChangeModel"
+      DetectorModelDescription: "Battery Life Detector model"
+      Key: "serial_number"
+      RoleArn: #!GetAtt IoTEventsServiceRole.Arn
+        Fn::ImportValue:
+          !Sub "${CoreName}-IoTEventsServiceRoleArn"
+      DetectorModelDefinition:
+        InitialStateName: "Normal"
+        States:
+        - StateName: Normal
+          OnEnter:
+            Events:
+            - EventName: Battery Power Restored
+              Condition: "$variable.BatteryLife > 90"
+              Actions:
+              - Sns:
+                  TargetArn: !Ref TextLowBatteryLifeExitSNS
+              - Lambda:
+                  FunctionArn: !GetAtt ParkingAlertsLF.Arn
+          OnInput:
+            TransitionEvents:
+            - EventName: LowBatteryWarning
+              Condition: "$input.BatteryStatusChangeInput.BatteryLife > 30 && $input.BatteryStatusChangeInput.BatteryLife < 40"
+              Actions:
+              - SetVariable:
+                  VariableName: BatteryLife
+                  Value: "$input.BatteryStatusChangeInput.BatteryLife"
+              NextState: Warning
+
+        - StateName: Warning
+          OnEnter:
+            Events:
+            - EventName: Low BatteryLife Warning
+              Condition: "$variable.BatteryLife > 30 && $variable.BatteryLife < 40"
+              Actions:
+              - Sns:
+                  TargetArn: !Ref TextLowBatteryLifeExitSNS
+              - Lambda:
+                  FunctionArn: !GetAtt ParkingAlertsLF.Arn
+          OnInput:
+            Events: []
+            TransitionEvents:
+            - EventName: Battery Power Restored
+              Condition: "$input.BatteryStatusChangeInput.BatteryLife > 90"
+              Actions:
+              - SetVariable:
+                  VariableName: BatteryLife
+                  Value: "$input.BatteryStatusChangeInput.BatteryLife"
+              NextState: Normal
+            - EventName: LowBatteryWarning
+              Condition: "$input.BatteryStatusChangeInput.BatteryLife > 20 && $input.BatteryStatusChangeInput.BatteryLife < 30"
+              Actions:
+              - SetVariable:
+                  VariableName: BatteryLife
+                  Value: "$input.BatteryStatusChangeInput.BatteryLife"
+              NextState: Dangerous
+          OnExit:
+            Events: []
+
+        - StateName: Dangerous
+          OnEnter:
+            Events:
+            - EventName: Low BatteryLife Dangerous
+              Condition: "$variable.BatteryLife > 20 && $variable.BatteryLife < 30"
+              Actions:
+              - Sns:
+                  TargetArn: !Ref TextLowBatteryLifeExitSNS
+              - Lambda:
+                  FunctionArn: !GetAtt ParkingAlertsLF.Arn
+          OnInput:
+            Events: []
+            TransitionEvents:
+            - EventName: Battery Power Restored
+              Condition: "$input.BatteryStatusChangeInput.BatteryLife > 90"
+              Actions:
+              - SetVariable:
+                  VariableName: BatteryLife
+                  Value: "$input.BatteryStatusChangeInput.BatteryLife"
+              NextState: Normal
+            - EventName: Battery Power Critical
+              Condition: "$input.BatteryStatusChangeInput.BatteryLife > 0 && $input.BatteryStatusChangeInput.BatteryLife < 20"
+              Actions:
+              - SetVariable:
+                  VariableName: BatteryLife
+                  Value: "$input.BatteryStatusChangeInput.BatteryLife"
+              NextState: Critical
+          OnExit:
+            Events: []
+        - StateName: Critical
+          OnEnter:
+            Events:
+            - EventName: Low BatteryLife Critical
+              Condition: "$variable.BatteryLife > 0 && $variable.BatteryLife < 20"
+              Actions:
+              - Sns:
+                  TargetArn: !Ref TextLowBatteryLifeExitSNS
+              - Lambda:
+                  FunctionArn: !GetAtt ParkingAlertsLF.Arn
+          OnInput:
+            Events: []
+            TransitionEvents:
+            - EventName: Battery Power Restored
+              Condition: "$input.BatteryStatusChangeInput.BatteryLife > 90"
+              Actions:
+              - SetVariable:
+                  VariableName: BatteryLife
+                  Value: "$input.BatteryStatusChangeInput.BatteryLife"
+              NextState: Normal
+            - EventName: Out of Service
+              Condition: "$input.BatteryStatusChangeInput.BatteryLife == 0"
+              Actions:
+              - SetVariable:
+                  VariableName: BatteryLife
+                  Value: "$input.BatteryStatusChangeInput.BatteryLife"
+              NextState: Dead
+          OnExit:
+            Events: []
+        - StateName: Dead
+          OnEnter:
+            Events:
+            - EventName: Out of Service
+              Condition: "$variable.BatteryLife == 0"
+              Actions:
+              - Sns:
+                  TargetArn: !Ref TextLowBatteryLifeExitSNS
+              - Lambda:
+                  FunctionArn: !GetAtt ParkingAlertsLF.Arn
+          OnInput:
+            Events: []
+            TransitionEvents:
+            - EventName: Battery Power Restored
+              Condition: "$input.BatteryStatusChangeInput.BatteryLife > 90"
+              Actions:
+              - SetVariable:
+                  VariableName: BatteryLife
+                  Value: "$input.BatteryStatusChangeInput.BatteryLife"
+              NextState: Normal
+          OnExit:
+            Events: []
+
+  DeviceRegisterTopicRule:
+    Type: AWS::IoT::TopicRule
+    Properties:
+      RuleName: !Ref IoTRuleDeviceRegister
+      TopicRulePayload:
+        RuleDisabled: false
+        Sql: SELECT *
+        Actions:
+          - Lambda:
+              FunctionArn: !GetAtt DeviceRegisterMySqlLF.Arn
+
+  DeviceStatusTopicRule:
+    Type: AWS::IoT::TopicRule
+    Properties:
+      RuleName: !Ref IoTRuleDeviceStatus
+      TopicRulePayload:
+        RuleDisabled: false
+        Sql: SELECT *
+        Actions:
+          - Lambda:
+              FunctionArn: !GetAtt DeviceStatusMySqlLF.Arn
+          - IotEvents:
+              InputName: !Ref BatteryStatusChangeInput
+              RoleArn: #!GetAtt IoTEventsServiceRole.Arn
+                Fn::ImportValue:
+                  !Sub "${CoreName}-IoTEventsServiceRoleArn"
+
+  DeviceDeathTopicRule:
+    Type: AWS::IoT::TopicRule
+    Properties:
+      RuleName: !Ref IoTRuleDeviceDeath
+      TopicRulePayload:
+        RuleDisabled: false
+        Sql: SELECT *
+        Actions:
+          - Lambda:
+              FunctionArn: !GetAtt DeviceStatusMySqlLF.Arn
+
+
+

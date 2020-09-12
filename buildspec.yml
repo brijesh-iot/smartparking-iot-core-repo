@@ -1,0 +1,16 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - pip install -q --upgrade pip
+      - pip install -q aws-sam-cli
+  build:
+    commands:
+      - sam package --template-file template.yaml --output-template-file packaged.yaml --s3-bucket ${ARTIFACTS_BUCKET}
+
+artifacts:
+  type: zip
+  files:
+    - '**/*'
+    #- packaged.yaml
