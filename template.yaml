@@ -63,8 +63,9 @@ Resources:
           deviceLocationMpgTable: 'SMART_PARKING_DEVICE_ADDRESS_MPG'
           dbPass: !Sub '{{resolve:secretsmanager:SmartParkingRDSAdmin:SecretString:password}}'
           dbUser: !Sub '{{resolve:secretsmanager:SmartParkingRDSAdmin:SecretString:username}}'
-          dbHost: !Sub '{{resolve:secretsmanager:SmartParkingRDSAdmin:SecretString:host}}'
           dbName: !Sub '{{resolve:secretsmanager:SmartParkingRDSAdmin:SecretString:dbname}}'
+          dbHost: - Fn::ImportValue:
+                      !Sub "${CoreName}-MySqlDBInstanceEndpoint"
 
       Tags:
         Project: !Ref CoreName
