@@ -1,4 +1,4 @@
-# SmartParking IoT Core Repo
+# SmartParking IoT Core Repository
 
 This is the repository for the code going to be deployed at IoT Core.
 
