@@ -64,8 +64,8 @@ Resources:
           dbPass: !Sub '{{resolve:secretsmanager:SmartParkingRDSAdmin:SecretString:password}}'
           dbUser: !Sub '{{resolve:secretsmanager:SmartParkingRDSAdmin:SecretString:username}}'
           dbName: !Sub '{{resolve:secretsmanager:SmartParkingRDSAdmin:SecretString:dbname}}'
-          dbHost: - Fn::ImportValue:
-                      !Sub "${CoreName}-MySqlDBInstanceEndpoint"
+          dbHost: Fn::ImportValue:
+                    !Sub "${CoreName}-MySqlDBInstanceEndpoint"
 
       Tags:
         Project: !Ref CoreName
