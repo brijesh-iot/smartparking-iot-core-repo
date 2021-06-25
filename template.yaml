@@ -64,8 +64,9 @@ Resources:
           dbPass: !Sub '{{resolve:secretsmanager:SmartParkingRDSAdmin:SecretString:password}}'
           dbUser: !Sub '{{resolve:secretsmanager:SmartParkingRDSAdmin:SecretString:username}}'
           dbName: !Sub '{{resolve:secretsmanager:SmartParkingRDSAdmin:SecretString:dbname}}'
-          dbHost: Fn::ImportValue:
-                    !Sub "${CoreName}-MySqlDBInstanceEndpoint"
+          dbHost:
+            Fn::ImportValue:
+              !Sub "${CoreName}-MySqlDBInstanceEndpoint"
 
       Tags:
         Project: !Ref CoreName
@@ -108,8 +109,10 @@ Resources:
           tablename: 'SMART_PARKING_DEVICE_STATUS'
           dbPass: !Sub '{{resolve:secretsmanager:SmartParkingRDSAdmin:SecretString:password}}'
           dbUser: !Sub '{{resolve:secretsmanager:SmartParkingRDSAdmin:SecretString:username}}'
-          dbHost: !Sub '{{resolve:secretsmanager:SmartParkingRDSAdmin:SecretString:host}}'
           dbName: !Sub '{{resolve:secretsmanager:SmartParkingRDSAdmin:SecretString:dbname}}'
+          dbHost:
+            Fn::ImportValue:
+              !Sub "${CoreName}-MySqlDBInstanceEndpoint"
 
       Tags:
         Project: !Ref CoreName
@@ -228,11 +231,13 @@ Resources:
           alertsTablename: 'PARKING_ALERTS_WARNINGS'
           dbPass: !Sub '{{resolve:secretsmanager:SmartParkingRDSAdmin:SecretString:password}}'
           dbUser: !Sub '{{resolve:secretsmanager:SmartParkingRDSAdmin:SecretString:username}}'
-          dbHost: !Sub '{{resolve:secretsmanager:SmartParkingRDSAdmin:SecretString:host}}'
           dbName: !Sub '{{resolve:secretsmanager:SmartParkingRDSAdmin:SecretString:dbname}}'
           deviceMasterTable: 'SMART_PARKING_DEVICE_MASTER'
           deviceAddressMpgTable: 'SMART_PARKING_DEVICE_ADDRESS_MPG'
           addressMasterTable: 'SMART_PARKING_ADDRESS_MASTER'
+          dbHost:
+            Fn::ImportValue:
+              !Sub "${CoreName}-MySqlDBInstanceEndpoint"
 
 
       VpcConfig:
